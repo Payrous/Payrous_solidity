@@ -3,14 +3,13 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
-contract Multipay{
-
-    address owner;
-    string public organizationName;
+contract Multipay {
+    address public owner;
+    address public platformFeeRecipient;
     uint256 public lastIndex;
     uint256 public constant MAX_EMPLOYEES = 100;
-
+    
+    bool private initialized;
 
     error Unauthorized();
     error InvalidAmount();
@@ -22,13 +21,12 @@ contract Multipay{
     error ExceedsLimit();
     error MaxEmployee();
     error InvalidTime();
-
+    error AlreadyInitialized();
 
     event ERC20Transfer(address indexed token, address indexed from, address indexed to, uint256 amount);
     event NativeTransfer(address indexed from, address indexed to, uint256 amount);
 
-
-    struct OrganizationDetails{
+    struct OrganizationDetails {
         string organizationName;
         address organizationAddress;
         address tokenAddress;
@@ -39,22 +37,30 @@ contract Multipay{
         bool isPaymentActive;
     }
 
-
     OrganizationDetails organizationDetails;
 
     mapping(address => uint256) public employeeIndex;
     mapping(address => bool) public employeeExists;
 
-
-    modifier onlyOwner(){
+    modifier onlyOwner() {
         require(msg.sender == owner, "!OWNER");
         _;
     }
 
-    constructor(string memory _organizationName){
-        owner = msg.sender;
+    // Remove the constructor and replace with an initialize function
+    function initialize(
+        string memory _organizationName,
+        address _owner,
+        address _platformFeeRecipient
+    ) external {
+        if (initialized) {
+            revert AlreadyInitialized();
+        }
+        owner = _owner;
         organizationDetails.organizationName = _organizationName;
-        organizationDetails.organizationAddress = msg.sender;
+        organizationDetails.organizationAddress = _owner;
+        platformFeeRecipient = _platformFeeRecipient;
+        initialized = true;
     }
 
     function setupPaymentMethod(address _tokenAddress, uint256 _paymentInterval, uint256 _startTime) public onlyOwner{
@@ -168,29 +174,57 @@ contract Multipay{
     }
 
 
-    function publicSend( address[] calldata _recipeints, uint256[] calldata _amounts, address _tokenAddress) external payable {
-        if(_recipeints.length != _amounts.length) {
+   function publicSend(address[] calldata _recipients, uint256[] calldata _amounts, address _tokenAddress) external payable {
+        if(_recipients.length != _amounts.length) {
             revert InvalidLength();
         }
 
-        if (_tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            for (uint256 i; i < _recipeints.length; i++) {
-            address recipient = _recipeints[i];
-            payable(recipient).transfer(_amounts[i]);
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < _amounts.length; i++) {
+            totalAmount += _amounts[i];
+        }
+        
+        uint256 platformFee = (totalAmount * 5) / 100; 
 
-            emit NativeTransfer(msg.sender, recipient, _amounts[i]);
+        if (_tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+            // Amount check
+            uint256 requiredAmount = totalAmount + platformFee;
+            if (msg.value < requiredAmount) {
+                revert InsufficientBalance();
+            }
+
+            // Transfer platform fee
+            payable(platformFeeRecipient).transfer(platformFee);
+            emit NativeTransfer(msg.sender, platformFeeRecipient, platformFee);
+
+            // Transfer to recipients
+            for (uint256 i = 0; i < _recipients.length; i++) {
+                address recipient = _recipients[i];
+                payable(recipient).transfer(_amounts[i]);
+                emit NativeTransfer(msg.sender, recipient, _amounts[i]);
+            }
+
+            // Refund excess if any
+            uint256 excess = msg.value - requiredAmount;
+            if (excess > 0) {
+                payable(msg.sender).transfer(excess);
             }
         } else {
+            // ERC20 token transfer
             IERC20 token = IERC20(_tokenAddress);
+            
+            // Transfer platform fee
+            token.transferFrom(msg.sender, platformFeeRecipient, platformFee);
+            emit ERC20Transfer(_tokenAddress, msg.sender, platformFeeRecipient, platformFee);
 
-            for (uint256 i = 0; i < _recipeints.length; i++) {
-            address recipient = _recipeints[i];
-            token.transferFrom(msg.sender, recipient, _amounts[i]);
-
-            emit ERC20Transfer(_tokenAddress, msg.sender, recipient, _amounts[i]);
+            // Transfer to recipients
+            for (uint256 i = 0; i < _recipients.length; i++) {
+                address recipient = _recipients[i];
+                token.transferFrom(msg.sender, recipient, _amounts[i]);
+                emit ERC20Transfer(_tokenAddress, msg.sender, recipient, _amounts[i]);
             }
         }
-    } 
+    }
 
     function withrawLockfunds(address _tokenAddress) external onlyOwner{
         IERC20(_tokenAddress).transfer(owner, IERC20(_tokenAddress).balanceOf(address(this)));
