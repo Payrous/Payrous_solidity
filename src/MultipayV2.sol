@@ -9,6 +9,8 @@ pragma solidity ^0.8.13;
 // the organization will then call the payParties function to pay the parties 
 // organization can create an automated system for payment of parties by setting date for payment, we can use chainliink to trigger the payment when the date is due
 
+//limit the number of parties that can be added to the contract to 250
+
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -81,7 +83,9 @@ contract MultipayV2{
         if(_employees.length != _amounts.length){
             revert InvalidLength();
         }
-        if(_employees.length >= 20){
+
+        // gas 
+        if(_employees.length >= 250){
             revert ExceedsLimit();
         }
 
@@ -192,6 +196,11 @@ contract MultipayV2{
     function batchSend( address[] calldata _recipeints, uint256[] calldata _amounts, address _tokenAddress) external payable {
         if(_recipeints.length != _amounts.length) {
             revert InvalidLength();
+        }
+
+        //gas
+        if(_recipeints.length >= 250){
+            revert ExceedsLimit();
         }
 
         if (_tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
