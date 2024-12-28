@@ -116,6 +116,13 @@ contract MultipayV2{
             revert InvalidAmount();
         }
 
+        if(employeeExists[_employee]){
+            uint256 index = employeeIndex[_employee];
+            organizationDetails.amountToBePaid[index] = _amount;
+            employeeDetails[index].amountToBePaid = _amount;
+            return;
+        }
+
         organizationDetails.employees.push(_employee);
         organizationDetails.amountToBePaid.push(_amount);
         employeeExists[_employee] = true;
@@ -142,7 +149,7 @@ contract MultipayV2{
     }
 
 
-    function sendToEmployee( ) external payable { 
+    function sendToEmployee() external payable { 
         if(organizationDetails.isPaymentActive == false){
             revert Unauthorized();
         }
