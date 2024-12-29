@@ -7,7 +7,8 @@ contract Multipay {
     address public owner;
     address public platformFeeRecipient;
     uint256 public lastIndex;
-    uint256 public constant MAX_EMPLOYEES = 100;
+    uint256 public constant MAX_EMPLOYEES = 250;
+    uint256 public PLATFORM_FEE = 1;
     
     bool private initialized;
 
@@ -86,9 +87,6 @@ contract Multipay {
         if(_employees.length != _amounts.length){
             revert InvalidLength();
         }
-        if(_employees.length >= 20){
-            revert ExceedsLimit();
-        }
 
         for(uint256 i; i < _employees.length; i++){
             if(_employees[i] == address(0) || employeeExists[_employees[i]]){
@@ -111,7 +109,13 @@ contract Multipay {
             revert InvalidAmount();
         }
         if(employeeExists[_employee]){
-            revert EmployeeAlreadyExist();
+            uint256 index = employeeIndex[_employee];
+            organizationDetails.amountToBePaid[index] = _amount;
+            return;
+        }
+
+        if(organizationDetails.employees.length + 1 > MAX_EMPLOYEES){
+            revert MaxEmployee();
         }
 
         organizationDetails.employees.push(_employee);
@@ -184,7 +188,7 @@ contract Multipay {
             totalAmount += _amounts[i];
         }
         
-        uint256 platformFee = (totalAmount * 5) / 100; 
+        uint256 platformFee = (totalAmount * PLATFORM_FEE) / 100; 
 
         if (_tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             // Amount check
@@ -230,6 +234,13 @@ contract Multipay {
         IERC20(_tokenAddress).transfer(owner, IERC20(_tokenAddress).balanceOf(address(this)));
     }
 
+    function updatePlatformFee(uint256 _platformFee) external onlyOwner{
+        if(_platformFee < 0 || _platformFee > 10){
+            revert InvalidAmount();
+        }
+        PLATFORM_FEE = _platformFee;
+    }
+
     function transferNativeFunds() external onlyOwner{
         payable(owner).transfer(address(this).balance);
     }
@@ -244,6 +255,10 @@ contract Multipay {
         return (organizationDetails.amountToBePaid[_index], organizationDetails.startTime, organizationDetails.paymentInterval);
     }
 
+    function getAllEmployeeAddress() public view returns(address[] memory){
+        return organizationDetails.employees;
+    }
+
     function getEmployeeCount() public view returns(uint256){
         return organizationDetails.employees.length;
     }
@@ -252,8 +267,6 @@ contract Multipay {
         uint256 _index = employeeIndex[_employee];
         return organizationDetails.amountToBePaid[_index];
     }
-
-
 
 
 }
