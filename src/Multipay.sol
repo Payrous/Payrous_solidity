@@ -51,23 +51,28 @@ contract Multipay {
     // Remove the constructor and replace with an initialize function
     function initialize(
         string memory _organizationName,
+        address _tokenAddress,
         address _owner,
         address _platformFeeRecipient
     ) external {
         if (initialized) {
             revert AlreadyInitialized();
         }
-        owner = _owner;
-        organizationDetails.organizationName = _organizationName;
-        organizationDetails.organizationAddress = _owner;
-        platformFeeRecipient = _platformFeeRecipient;
-        initialized = true;
-    }
 
-    function setupPaymentMethod(address _tokenAddress, uint256 _paymentInterval, uint256 _startTime) public onlyOwner{
         if(_tokenAddress == address(0)){
             revert InvalidAddress();
         }
+        owner = _owner;
+        organizationDetails.organizationName = _organizationName;
+        organizationDetails.organizationAddress = _owner;
+        organizationDetails.tokenAddress = _tokenAddress;
+        platformFeeRecipient = _platformFeeRecipient;
+
+        initialized = true;
+    }
+
+    function setupReoccuringPayment(uint256 _paymentInterval, uint256 _startTime) public onlyOwner{
+
         if(_paymentInterval == 0){
             revert InvalidAmount();
         }
@@ -75,7 +80,6 @@ contract Multipay {
             revert InvalidTime();
         }
 
-        organizationDetails.tokenAddress = _tokenAddress;
         organizationDetails.paymentInterval = _paymentInterval;
         organizationDetails.startTime = _startTime;
     }
@@ -97,7 +101,7 @@ contract Multipay {
             employeeIndex[_employees[i]] = lastIndex;
             employeeExists[_employees[i]] = true;
             lastIndex++;
-     }
+        }
 
     }
 
@@ -230,7 +234,29 @@ contract Multipay {
         }
     }
 
-    function withrawLockfunds(address _tokenAddress) external onlyOwner{
+    function deposit(uint256 _amount) external payable {
+        if(_amount == 0){
+            revert InvalidAmount();
+        }
+
+        if (organizationDetails.tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+            if (msg.value < _amount) {
+                revert InsufficientBalance();
+            }
+        } else {
+            IERC20 token = IERC20(organizationDetails.tokenAddress);
+            token.transferFrom(msg.sender, address(this), _amount);
+        }
+    }
+
+    function updatePaymentToken(address _tokenAddress) external onlyOwner{
+        if(_tokenAddress == address(0)){
+            revert InvalidAddress();
+        }
+        organizationDetails.tokenAddress = _tokenAddress;
+    }
+
+    function withrawLockedfunds(address _tokenAddress) external onlyOwner{
         IERC20(_tokenAddress).transfer(owner, IERC20(_tokenAddress).balanceOf(address(this)));
     }
 
@@ -268,5 +294,17 @@ contract Multipay {
         return organizationDetails.amountToBePaid[_index];
     }
 
+    function getContractBalance() public view returns(uint256){
+        if(organizationDetails.tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
+            return address(this).balance;
+        }else{
+            return IERC20(organizationDetails.tokenAddress).balanceOf(address(this));
+        }
+    }
+
 
 }
+
+
+    //pay recipient
+

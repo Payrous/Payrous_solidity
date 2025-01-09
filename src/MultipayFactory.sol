@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 interface IMultipa {
-    function initialize(string memory _organizationName, address _owner, address _platformFeeRecipient) external;
+    function initialize(string memory _organizationName, address _tokenAddress, address _owner, address _platformFeeRecipient) external;
 }
 
 contract MinimalProxy {
@@ -18,6 +18,7 @@ contract MinimalProxy {
     function createClone(
         address _implementationContract,
         string memory _organizationName,
+        address _tokenAddress,
         address _owner,
         address _platformFeeRecipient
     ) external returns (address) {
@@ -83,7 +84,7 @@ contract MinimalProxy {
             // code size == 0x37 (55 bytes)
             proxy := create(0, clone, 0x37)
         }
-        IMultipa(proxy).initialize(_organizationName, _owner, _platformFeeRecipient);
+        IMultipa(proxy).initialize(_organizationName, _tokenAddress, _owner, _platformFeeRecipient);
 
         cloneAddresses[contractIndex] = proxy;
 
