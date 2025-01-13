@@ -35,6 +35,7 @@ contract Multipay {
         uint256[] amountToBePaid;
         uint256 paymentInterval;
         uint256 startTime;
+        uint256 endTime;
         bool isPaymentActive;
     }
 
@@ -71,7 +72,7 @@ contract Multipay {
         initialized = true;
     }
 
-    function setupReoccuringPayment(uint256 _paymentInterval, uint256 _startTime) public onlyOwner{
+    function setupReoccuringPayment(uint256 _paymentInterval, uint256 _startTime, uint256 _endtime) public onlyOwner{
 
         if(_paymentInterval == 0){
             revert InvalidAmount();
@@ -82,6 +83,7 @@ contract Multipay {
 
         organizationDetails.paymentInterval = _paymentInterval;
         organizationDetails.startTime = _startTime;
+        organizationDetails.endTime = _endtime;
     }
 
     function addMultipleEmployees(address[] memory _employees, uint256[] memory _amounts) public onlyOwner{
@@ -147,6 +149,12 @@ contract Multipay {
         // if(organizationDetails.isPaymentActive == false){
         //     revert InvalidTime();
         // }
+
+        // if endate is 0 then payment is indefinite else payment stops after enddate
+        if(organizationDetails.endTime != 0 && block.timestamp > organizationDetails.endTime){
+            revert InvalidTime();
+        }
+
         if(block.timestamp < organizationDetails.startTime){
             revert Unauthorized();
         }else{
@@ -307,4 +315,5 @@ contract Multipay {
 
 
     //pay recipient
+    // check if it's posssibel to get all recurring payment details for all organizattion in one function call or not
 
