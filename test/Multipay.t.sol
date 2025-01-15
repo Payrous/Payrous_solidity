@@ -12,6 +12,9 @@ contract MultipayTest is Test {
     address public platformFeeRecipient;
     address public employee1;
     address public employee2;
+    uint256 _paymentInterval = 30 days;
+    //weeks in year
+    uint256 _endtime = 52 weeks; //1 year
     
     // Test ERC20 token
     ERC20Mock public testToken;
@@ -44,6 +47,7 @@ contract MultipayTest is Test {
         address cloneAddress = factory.createClone(
             address(implementation),
             "TestOrg",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -63,6 +67,7 @@ contract MultipayTest is Test {
         address cloneAddress = factory.createClone(
             address(implementation),
             "TestOrg",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -115,6 +120,7 @@ contract MultipayTest is Test {
         address cloneAddress = factory.createClone(
             address(implementation),
             "TestOrg",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -169,6 +175,7 @@ contract MultipayTest is Test {
         address clone1 = factory.createClone(
             address(implementation),
             "TestOrg1",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -176,6 +183,7 @@ contract MultipayTest is Test {
         address clone2 = factory.createClone(
             address(implementation),
             "TestOrg2",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -197,6 +205,7 @@ contract MultipayTest is Test {
         address cloneAddress = factory.createClone(
             address(implementation),
             "TestOrg",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -205,7 +214,7 @@ contract MultipayTest is Test {
         
         // Try to initialize again
         vm.expectRevert(Multipay.AlreadyInitialized.selector);
-        clone.initialize("TestOrg2", owner, platformFeeRecipient);
+        clone.initialize("TestOrg2", address(testToken), owner, platformFeeRecipient);
         
         vm.stopPrank();
    }
@@ -215,6 +224,7 @@ contract MultipayTest is Test {
         address cloneAddress = factory.createClone(
             address(implementation),
             "TestOrg",
+            address(testToken),
             owner,
             platformFeeRecipient
         );
@@ -255,10 +265,10 @@ contract MultipayTest is Test {
 
         testToken.mint(address(clone), 50*1e18);
 
-        clone.setupPaymentMethod(address(testToken), 30 days, block.timestamp);
+        clone.setupReoccuringPayment( _paymentInterval, block.timestamp, _endtime);
         clone.addEmployee(employee1, 1 * 1e18);
         
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(block.timestamp + _endtime);
         
         uint256 balanceBefore = testToken.balanceOf(address(clone));
         clone.sendToEmployee();
@@ -274,10 +284,10 @@ contract MultipayTest is Test {
 
         Multipay clone = deployClone();
 
-        clone.setupPaymentMethod(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), 30 days, block.timestamp);
+        clone.setupReoccuringPayment(_paymentInterval, block.timestamp, _endtime);
         clone.addEmployee(employee1, 1 * 10**18);
         
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(block.timestamp + _endtime);
         
         clone.sendToEmployee{value: 777}();
         uint256 balanceAfter = address(clone).balance;
