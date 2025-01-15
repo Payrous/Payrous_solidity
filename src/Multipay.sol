@@ -7,8 +7,8 @@ contract Multipay {
     address public owner;
     address public platformFeeRecipient;
     uint256 public lastIndex;
-    uint256 public constant MAX_EMPLOYEES = 250;
-    uint256 public PLATFORM_FEE = 1;
+    uint256 public MAX_EMPLOYEES;
+    uint256 public PLATFORM_FEE;
     
     bool private initialized;
 
@@ -68,6 +68,8 @@ contract Multipay {
         organizationDetails.organizationAddress = _owner;
         organizationDetails.tokenAddress = _tokenAddress;
         platformFeeRecipient = _platformFeeRecipient;
+        MAX_EMPLOYEES = 1500;
+        PLATFORM_FEE = 5;
 
         initialized = true;
     }
@@ -151,7 +153,7 @@ contract Multipay {
         // }
 
         // if endate is 0 then payment is indefinite else payment stops after enddate
-        if(organizationDetails.endTime != 0 && block.timestamp > organizationDetails.endTime){
+        if(organizationDetails.endTime != 0 && block.timestamp >= organizationDetails.endTime){
             revert InvalidTime();
         }
 
@@ -195,12 +197,12 @@ contract Multipay {
             revert InvalidLength();
         }
 
-        uint256 totalAmount = 0;
+        uint256 totalAmount;
         for (uint256 i = 0; i < _amounts.length; i++) {
             totalAmount += _amounts[i];
-        }
-        
+        }        
         uint256 platformFee = (totalAmount * PLATFORM_FEE) / 100; 
+        require(platformFee > 0, "Invalid platform fee");
 
         if (_tokenAddress == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             // Amount check
@@ -210,13 +212,15 @@ contract Multipay {
             }
 
             // Transfer platform fee
-            payable(platformFeeRecipient).transfer(platformFee);
+            (bool success, ) = platformFeeRecipient.call{value: platformFee}("");
+            require(success, "Transfer failed.");
             emit NativeTransfer(msg.sender, platformFeeRecipient, platformFee);
 
             // Transfer to recipients
             for (uint256 i = 0; i < _recipients.length; i++) {
                 address recipient = _recipients[i];
-                payable(recipient).transfer(_amounts[i]);
+                (bool _success, ) = recipient.call{value: _amounts[i]}("");
+                require(_success, "Transfer failed.");
                 emit NativeTransfer(msg.sender, recipient, _amounts[i]);
             }
 
