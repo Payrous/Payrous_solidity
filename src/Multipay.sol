@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+
+    //    --------------TO DO-----------------
+
+    //pay recipient
+    // check if it's posssibel to get all recurring payment details for all organizattion in one function call or not
+    // hanlde backlisted address
+    // try catch continue to handle a revert in a loop so that other transactions are not affected
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Multipay {
@@ -317,7 +325,4 @@ contract Multipay {
 
 }
 
-
-    //pay recipient
-    // check if it's posssibel to get all recurring payment details for all organizattion in one function call or not
 
