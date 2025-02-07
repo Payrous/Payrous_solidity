@@ -2,12 +2,16 @@
 pragma solidity ^0.8.13;
 
 
-    //    --------------TO DO-----------------
-
-    //pay recipient
-    // check if it's posssibel to get all recurring payment details for all organizattion in one function call or not
+    // NOTE:--->     //pAy recipient individually 
+    // NOTE:=--->    // check if it's posssibel to get all recurring payment details for all organizattion in one function call or not
     // hanlde backlisted address
+    //@audit ----->
+
     // try catch continue to handle a revert in a loop so that other transactions are not affected
+    // platform fee check ?
+    // GRIEFING EFFECT: RECEIVE FUNCTION of the recipient might make unecessary calls that waste gas ang cause the transaction to block gas limit
+    //and this will cause a revert in the contract. gas wsted and this function will not be able to work well.
+    // simulate transaction on the frontend to check if the call is going to be succesful before making the actuall call.
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
