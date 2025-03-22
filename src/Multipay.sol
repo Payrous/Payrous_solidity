@@ -7,6 +7,11 @@ pragma solidity ^0.8.13;
     // hanlde backlisted address
     //@audit ----->
 
+    //*** */
+    //factory should store platform fee recipient address, so clone make calls to get platform fee recipient address. if an update is made
+    // to the platform fee recipient address, the clone will get the latest address when making the call
+ 
+
     // try catch continue to handle a revert in a loop so that other transactions are not affected
     // platform fee check ?
     // GRIEFING EFFECT: RECEIVE FUNCTION of the recipient might make unecessary calls that waste gas ang cause the transaction to block gas limit
